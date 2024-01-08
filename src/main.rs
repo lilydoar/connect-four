@@ -1,6 +1,19 @@
 use raylib::prelude::*;
 
+mod game;
+mod graphics;
+
 fn main() -> Result<()> {
+    let (rl, thread) = raylib::init().build();
+    let mut game = game::Game::new();
+    let graphics = graphics::Graphics::new();
+
+    while !rl.window_should_close() {
+        game.update(&rl);
+        graphics.draw(&rl, &thread, &game);
+    }
+
+    /*
     let view = BoardView {
         tile_size: 128.0,
         tile_padding: 8.0,
@@ -27,7 +40,6 @@ fn main() -> Result<()> {
     let mut state = State::Player1Turn;
 
     while !rl.window_should_close() {
-
         /* Update */
         match state {
             State::Player1Win => {
@@ -50,7 +62,7 @@ fn main() -> Result<()> {
         // Place piece in column
         match state {
             State::Player1Turn => {
-                board.place_piece(column , Piece::Player1)?;
+                board.place_piece(column, Piece::Player1)?;
                 state = State::Player2Turn;
             }
             State::Player2Turn => {
@@ -79,10 +91,11 @@ fn main() -> Result<()> {
         //d.draw_text("Player 1", 12, 12, 12, pallete.player_1_color);
         //d.draw_text("Player 2", 12, 24, 12, pallete.player_2_color);
     }
+    */
 
     Result::Ok(())
 }
-
+/*
 struct BoardView {
     tile_size: f32,
     tile_padding: f32,
@@ -223,3 +236,4 @@ fn get_board_column(view: &BoardView, mouse_pos: Vector2) -> Option<usize> {
 fn check_win(board: &Board, state: &State) -> Option<State> {
     None
 }
+*/
