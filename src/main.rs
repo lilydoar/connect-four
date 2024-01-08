@@ -21,20 +21,55 @@ fn main() -> Result<()> {
     };
 
     let mut board = Board::empty();
-    board.place_piece(0, Piece::Player1)?;
-    board.place_piece(1, Piece::Player2)?;
+    board.place_piece(Some(0), Piece::Player1)?;
+    board.place_piece(Some(1), Piece::Player2)?;
 
     let mut state = State::Player1Turn;
 
     while !rl.window_should_close() {
+
         /* Update */
+        match state {
+            State::Player1Win => {
+                //d.draw_text("Player 1 wins!", 12, 12, 12, pallete.player_1_color);
+                break;
+            }
+            State::Player2Win => {
+                //d.draw_text("Player 2 wins!", 12, 12, 12, pallete.player_2_color);
+                break;
+            }
+            _ => {}
+        }
 
         // input
         // Get mouse position and translate it to board coordinates
+        let mouse_pos = rl.get_mouse_position();
+        //println!("{:?}", mouse_pos);
+        let column = get_board_column(&view, mouse_pos);
 
         // Place piece in column
+        match state {
+            State::Player1Turn => {
+                board.place_piece(column , Piece::Player1)?;
+                state = State::Player2Turn;
+            }
+            State::Player2Turn => {
+                board.place_piece(column, Piece::Player2)?;
+                state = State::Player1Turn;
+            }
+            _ => {}
+        }
 
         // Check for win
+        let win = check_win(&board, &state);
+        if let Some(win) = win {
+            match win {
+                State::Player1Win | State::Player2Win => {
+                    state = win;
+                }
+                _ => {}
+            }
+        }
 
         /* Draw */
         let mut d = rl.begin_drawing(&thread);
@@ -91,7 +126,7 @@ struct Pallete {
     player_2_color: Color,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 enum Piece {
     Empty,
     Player1,
@@ -109,8 +144,23 @@ impl Board {
         }
     }
 
-    fn place_piece(&mut self, column: usize, piece: Piece) -> Result<()> {
-        self.pieces[0][column] = piece;
+    fn place_piece(&mut self, column: Option<usize>, piece: Piece) -> Result<()> {
+        match column {
+            Some(column) => {
+                if self.pieces[5][column] != Piece::Empty {
+                    return Result::Err(InvalidMove);
+                }
+            }
+            None => {
+                let mut column = 0;
+                while self.pieces[5][column] != Piece::Empty {
+                    column += 1;
+                    if column >= 7 {
+                        return Result::Err(InvalidMove);
+                    }
+                }
+            }
+        }
         Result::Ok(())
     }
 }
@@ -157,4 +207,19 @@ enum State {
     Player2Turn,
     Player1Win,
     Player2Win,
+}
+
+fn get_board_column(view: &BoardView, mouse_pos: Vector2) -> Option<usize> {
+    let (x, _) = view.board_position();
+    let mouse_x = mouse_pos.x - x;
+    let column = (mouse_x / view.tile_size) as usize;
+    if column < 7 {
+        Some(column)
+    } else {
+        None
+    }
+}
+
+fn check_win(board: &Board, state: &State) -> Option<State> {
+    None
 }
