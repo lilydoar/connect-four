@@ -1,4 +1,4 @@
-use crate::game::{Board, Game, Player, State, Piece};
+use crate::game::{Board, Game, Piece, Player, State, BOARD_HEIGHT, BOARD_WIDTH};
 use raylib::prelude::*;
 
 pub struct Graphics {
@@ -13,10 +13,10 @@ struct Pallete {
     piece_player_2: Color,
 }
 
-struct BoardView {
-    tile_size: f32,
-    tile_padding: f32,
-    board_padding: f32,
+pub struct BoardView {
+    pub tile_size: f32,
+    pub tile_padding: f32,
+    pub board_padding: f32,
 }
 
 impl Graphics {
@@ -27,7 +27,7 @@ impl Graphics {
         }
     }
 
-    pub fn draw(&self, rl: &RaylibHandle, thread: &RaylibThread, game: &Game) {
+    pub fn draw(&self, rl: &mut RaylibHandle, thread: &RaylibThread, game: &Game) {
         let mut d = rl.begin_drawing(&thread);
         d.clear_background(self.pallete.background);
         self.draw_game(&mut d, game);
@@ -48,9 +48,9 @@ impl Pallete {
 impl BoardView {
     fn default() -> Self {
         Self {
-            tile_size: 64.0,
-            tile_padding: 4.0,
-            board_padding: 16.0,
+            tile_size: 128.0,
+            tile_padding: 8.0,
+            board_padding: 32.0,
         }
     }
 }
@@ -68,7 +68,7 @@ impl Graphics {
             }
             State::Tie => {
                 self.draw_board(d, &game.board);
-                self.draw_tie_(d);
+                self.draw_tie(d);
             }
         }
     }
@@ -76,46 +76,66 @@ impl Graphics {
     fn draw_board(&self, d: &mut RaylibDrawHandle, board: &Board) {
         // Draw board
         d.draw_rectangle(
-            self.view.board_padding,
-            self.view.board_padding,
-            self.view.tile_size * 7.0,
-            self.view.tile_size * 6.0,
+            self.view.board_padding.round() as i32,
+            self.view.board_padding.round() as i32,
+            (self.view.tile_size * BOARD_WIDTH as f32).round() as i32,
+            (self.view.tile_size * BOARD_HEIGHT as f32).round() as i32,
             self.pallete.board,
         );
 
         // Draw pieces
         for row in 0..6 {
             for column in 0..7 {
-                let piece = board.get(row, column);
-                let (x, y) = self.view.piece_position(row, column);  
+                let (x, y) = self.view.piece_position(row, column);
                 let radius = self.view.piece_radius();
+                let color = match board.get(row, column) {
+                    Piece::Empty => self.pallete.background,
+                    Piece::Full(player) => match player {
+                        Player::Player1 => self.pallete.piece_player_1,
+                        Player::Player2 => self.pallete.piece_player_2,
+                    },
+                };
 
-                match piece {
-                    Piece::Empty => {}
-                    Piece::Full(Player::Player1) => {
-                        d.draw_circle(x, y, radius, self.pallete.piece_player_1);
-                    }
-                    Piece::Full(Player::Player2) => {
-                        d.draw_circle(x, y, radius, self.pallete.piece_player_2);
-                    }
-                }
+                d.draw_circle(x.round() as i32, y.round() as i32, radius, color);
             }
         }
     }
 
-    fn draw_player_turn(&self, d: &mut RaylibDrawHandle, player: Player) {}
+    fn draw_player_turn(&self, d: &mut RaylibDrawHandle, player: Player) {
+        // "Turn: Player 1" or "Turn: Player 2"
+    }
 
-    fn draw_winner(&self, d: &mut RaylibDrawHandle, player: Player) {}
+    fn draw_winner(&self, d: &mut RaylibDrawHandle, player: Player) {
+        // "Player 1 wins!" or "Player 2 wins!"
+        // Press space to restart
+    }
 
-    fn draw_tie_(&self, d: &mut RaylibDrawHandle) {}
+    fn draw_tie(&self, d: &mut RaylibDrawHandle) {
+        // "Tie!"
+        // Press space to restart
+    }
+
+    pub fn window_size(&self) -> (f32, f32) {
+        let width = self.view.tile_size * BOARD_WIDTH as f32 + self.view.board_padding * 2.0;
+        let height = self.view.tile_size * BOARD_HEIGHT as f32 + self.view.board_padding * 2.0;
+        (width, height)
+    }
+
+    pub fn board_view(&self) -> &BoardView {
+        &self.view
+    }
 }
 
 impl BoardView {
     fn piece_position(&self, row: usize, column: usize) -> (f32, f32) {
-        todo!()
+        let x = self.board_padding + self.tile_size * column as f32 + self.tile_size / 2.0;
+        let y = self.board_padding
+            + self.tile_size * (BOARD_HEIGHT - 1 - row) as f32
+            + self.tile_size / 2.0;
+        (x, y)
     }
 
     fn piece_radius(&self) -> f32 {
-        todo!()
+        self.tile_size / 2.0 - self.tile_padding
     }
 }
