@@ -5,6 +5,7 @@ use raylib::prelude::*;
 #[derive(Debug)]
 pub struct UserInput {
     pub space_pressed: bool,
+    pub r_pressed: bool,
     pub mouse_clicked: bool,
     pub mouse_column: Option<usize>,
     pub mouse_row: Option<usize>,
@@ -14,6 +15,7 @@ impl UserInput {
     pub fn new() -> Self {
         Self {
             space_pressed: false,
+            r_pressed: false,
             mouse_clicked: false,
             mouse_column: None,
             mouse_row: None,
@@ -22,6 +24,7 @@ impl UserInput {
 
     pub fn update(&mut self, rl: &mut RaylibHandle, board_view: &BoardView) {
         self.space_pressed = rl.is_key_pressed(KeyboardKey::KEY_SPACE);
+        self.r_pressed = rl.is_key_pressed(KeyboardKey::KEY_R);
         self.mouse_clicked = rl.is_mouse_button_pressed(MouseButton::MOUSE_LEFT_BUTTON);
         self.mouse_column = None;
         self.mouse_row = None;

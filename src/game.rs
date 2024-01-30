@@ -46,6 +46,11 @@ impl Game {
             return;
         }
 
+        if input.r_pressed {
+            self.board = Board::empty();
+            self.state = State::Turn(random_player());
+        }
+
         if input.space_pressed {
             let first_player = match self.state {
                 State::Win(player) => player,
