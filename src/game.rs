@@ -41,25 +41,22 @@ impl Game {
     }
 
     pub fn update(&mut self, input: &UserInput) {
-        if let State::Turn(player) = self.state {
-            self.handle_turn(player, input);
-            return;
-        }
-
+        // Restart game
         if input.r_pressed {
-            self.board = Board::empty();
-            self.state = State::Turn(random_player());
-        }
-
-        if input.space_pressed {
             let first_player = match self.state {
+                State::Turn(_) => random_player(),
                 State::Win(player) => player,
                 State::Tie => random_player(),
-                _ => unreachable!(),
             };
 
             self.board = Board::empty();
             self.state = State::Turn(first_player);
+        }
+
+        // Handle turn
+        if let State::Turn(player) = self.state {
+            self.handle_turn(player, input);
+            return;
         }
     }
 

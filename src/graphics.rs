@@ -131,7 +131,7 @@ impl Graphics {
             Player::Player2 => "Player 2",
         };
         d.draw_text(
-            format!("{} wins! Press space to restart", text).as_str(),
+            format!("{} wins! Press r to restart", text).as_str(),
             self.view.board_padding.round() as i32,
             self.view.text_padding().round() as i32,
             self.view.text_size() as i32,
@@ -141,7 +141,7 @@ impl Graphics {
 
     fn draw_tie(&self, d: &mut RaylibDrawHandle) {
         d.draw_text(
-            "Tie! Press space to restart",
+            "Tie! Press r to restart",
             self.view.board_padding.round() as i32,
             self.view.text_padding().round() as i32,
             self.view.text_size() as i32,
