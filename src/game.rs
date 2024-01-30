@@ -123,11 +123,56 @@ impl Board {
     }
 
     pub fn check_win(&self, player: Player) -> bool {
+        // Horizontal
+        for row in 0..BOARD_HEIGHT {
+            for col in 0..BOARD_WIDTH - 3 {
+                let i = row * BOARD_WIDTH + col;
+                if convolution_op(i, &WIN_HORIZONTAL, &self.pieces, player) {
+                    return true;
+                }
+            }
+        }
+
+        // Vertical
+        for row in 0..(BOARD_HEIGHT - 3) {
+            for col in 0..BOARD_WIDTH {
+                let i = row * BOARD_WIDTH + col;
+                if convolution_op(i, &WIN_VERTICAL, &self.pieces, player) {
+                    return true;
+                }
+            }
+        }
+
+        // Diagonal bottom left
+        for row in 0..(BOARD_HEIGHT - 3) {
+            for col in 0..(BOARD_WIDTH - 3) {
+                let i = row * BOARD_WIDTH + col;
+                if convolution_op(i, &WIN_DIAGONAL_BOTTOM_LEFT, &self.pieces, player) {
+                    return true;
+                }
+            }
+        }
+
+        // Diagonal bottom right
+        for row in 0..(BOARD_HEIGHT - 3) {
+            for col in 3..BOARD_WIDTH {
+                let i = row * BOARD_WIDTH + col;
+                if convolution_op(i, &WIN_DIAGONAL_BOTTOM_RIGHT, &self.pieces, player) {
+                    return true;
+                }
+            }
+        }
+
         false
     }
 
     pub fn check_tie(&self) -> bool {
-        false
+        for col in 0..BOARD_WIDTH {
+            if !self.column_full(col) {
+                return false;
+            }
+        }
+        true
     }
 }
 
@@ -137,4 +182,21 @@ fn random_player() -> Player {
     } else {
         Player::Player2
     }
+}
+
+// Describe the 4 win orientations as offsets from the current index
+const WIN_HORIZONTAL: [usize; 4] = [0, 1, 2, 3];
+const WIN_VERTICAL: [usize; 4] = [0, BOARD_WIDTH, BOARD_WIDTH * 2, BOARD_WIDTH * 3];
+const WIN_DIAGONAL_BOTTOM_LEFT: [usize; 4] =
+    [0, BOARD_WIDTH + 1, BOARD_WIDTH * 2 + 2, BOARD_WIDTH * 3 + 3];
+const WIN_DIAGONAL_BOTTOM_RIGHT: [usize; 4] =
+    [0, BOARD_WIDTH - 1, BOARD_WIDTH * 2 - 2, BOARD_WIDTH * 3 - 3];
+
+fn convolution_op(index: usize, win_arr: &[usize], pieces: &[Piece], player: Player) -> bool {
+    // Check a win orientation against a single index in the board
+    win_arr
+        .iter()
+        .filter(|i| pieces[index + *i] == Piece::Full(player))
+        .count()
+        == 4
 }
