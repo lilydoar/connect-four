@@ -11,6 +11,7 @@ struct Pallete {
     board: Color,
     piece_player_1: Color,
     piece_player_2: Color,
+    text: Color,
 }
 
 pub struct BoardView {
@@ -41,6 +42,7 @@ impl Pallete {
             board: Color::from_hex("685b67").unwrap(),
             piece_player_1: Color::from_hex("72afa7").unwrap(),
             piece_player_2: Color::from_hex("aabc6f").unwrap(),
+            text: Color::from_hex("E3B505").unwrap(),
         }
     }
 }
@@ -50,8 +52,16 @@ impl BoardView {
         Self {
             tile_size: 128.0,
             tile_padding: 8.0,
-            board_padding: 32.0,
+            board_padding: 48.0,
         }
+    }
+
+    fn text_size(&self) -> f32 {
+        self.board_padding * 0.9
+    }
+
+    fn text_padding(&self) -> f32 {
+        self.board_padding * 0.1 / 2.0
     }
 }
 
@@ -102,17 +112,41 @@ impl Graphics {
     }
 
     fn draw_player_turn(&self, d: &mut RaylibDrawHandle, player: Player) {
-        // "Turn: Player 1" or "Turn: Player 2"
+        let text = match player {
+            Player::Player1 => "Player 1",
+            Player::Player2 => "Player 2",
+        };
+        d.draw_text(
+            format!("Turn: {}", text).as_str(),
+            self.view.board_padding.round() as i32,
+            self.view.text_padding().round() as i32,
+            self.view.text_size() as i32,
+            self.pallete.text,
+        );
     }
 
     fn draw_winner(&self, d: &mut RaylibDrawHandle, player: Player) {
-        // "Player 1 wins!" or "Player 2 wins!"
-        // Press space to restart
+        let text = match player {
+            Player::Player1 => "Player 1",
+            Player::Player2 => "Player 2",
+        };
+        d.draw_text(
+            format!("{} wins! Press space to restart", text).as_str(),
+            self.view.board_padding.round() as i32,
+            self.view.text_padding().round() as i32,
+            self.view.text_size() as i32,
+            self.pallete.text,
+        );
     }
 
     fn draw_tie(&self, d: &mut RaylibDrawHandle) {
-        // "Tie!"
-        // Press space to restart
+        d.draw_text(
+            "Tie! Press space to restart",
+            self.view.board_padding.round() as i32,
+            self.view.text_padding().round() as i32,
+            self.view.text_size() as i32,
+            self.pallete.text,
+        );
     }
 
     pub fn window_size(&self) -> (f32, f32) {
