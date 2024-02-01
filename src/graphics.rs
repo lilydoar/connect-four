@@ -1,175 +1,148 @@
-use crate::game::{Board, Game, Piece, Player, State, BOARD_HEIGHT, BOARD_WIDTH};
+use crate::game::{Board, Game, Player, State, Tile, BOARD_HEIGHT, BOARD_WIDTH};
 use raylib::prelude::*;
 
+#[derive(Default)]
 pub struct Graphics {
+    pub view: View,
     pallete: Pallete,
-    view: BoardView,
+}
+
+pub struct View {
+    tile_size: i32,
+    _tile_padding: i32,
+    tile_radius: f32,
+    text_size: i32,
+    text_padding: i32,
+    board_padding: i32,
 }
 
 struct Pallete {
     background: Color,
     board: Color,
-    piece_player_1: Color,
-    piece_player_2: Color,
+    player_1: Color,
+    player_2: Color,
     text: Color,
 }
 
-pub struct BoardView {
-    pub tile_size: f32,
-    pub tile_padding: f32,
-    pub board_padding: f32,
-}
-
 impl Graphics {
-    pub fn new() -> Self {
-        Self {
-            pallete: Pallete::default(),
-            view: BoardView::default(),
-        }
-    }
-
-    pub fn draw(&self, rl: &mut RaylibHandle, thread: &RaylibThread, game: &Game) {
-        let mut d = rl.begin_drawing(&thread);
+    pub fn draw(&self, d: &mut RaylibDrawHandle, game: &Game) {
         d.clear_background(self.pallete.background);
-        self.draw_game(&mut d, game);
-    }
-}
 
-impl Pallete {
-    fn default() -> Self {
-        Self {
-            background: Color::from_hex("31314e").unwrap(),
-            board: Color::from_hex("685b67").unwrap(),
-            piece_player_1: Color::from_hex("72afa7").unwrap(),
-            piece_player_2: Color::from_hex("aabc6f").unwrap(),
-            text: Color::from_hex("E3B505").unwrap(),
-        }
-    }
-}
-
-impl BoardView {
-    fn default() -> Self {
-        Self {
-            tile_size: 128.0,
-            tile_padding: 8.0,
-            board_padding: 48.0,
-        }
-    }
-
-    fn text_size(&self) -> f32 {
-        self.board_padding * 0.9
-    }
-
-    fn text_padding(&self) -> f32 {
-        self.board_padding * 0.1 / 2.0
-    }
-}
-
-impl Graphics {
-    fn draw_game(&self, d: &mut RaylibDrawHandle, game: &Game) {
-        match game.state {
-            State::Turn(player) => {
-                self.draw_board(d, &game.board);
-                self.draw_player_turn(d, player);
-            }
-            State::Win(player) => {
-                self.draw_board(d, &game.board);
-                self.draw_winner(d, player);
-            }
-            State::Tie => {
-                self.draw_board(d, &game.board);
-                self.draw_tie(d);
-            }
-        }
+        self.draw_board(d, game.board());
+        self.draw_text(d, game);
     }
 
     fn draw_board(&self, d: &mut RaylibDrawHandle, board: &Board) {
-        // Draw board
-        d.draw_rectangle(
-            self.view.board_padding.round() as i32,
-            self.view.board_padding.round() as i32,
-            (self.view.tile_size * BOARD_WIDTH as f32).round() as i32,
-            (self.view.tile_size * BOARD_HEIGHT as f32).round() as i32,
-            self.pallete.board,
-        );
+        let (b_width, b_height) = self.view.board_size();
+        let (b_x, b_y) = self.view.board_position();
 
-        // Draw pieces
-        for row in 0..6 {
-            for column in 0..7 {
-                let (x, y) = self.view.piece_position(row, column);
-                let radius = self.view.piece_radius();
-                let color = match board.get(row, column) {
-                    Piece::Empty => self.pallete.background,
-                    Piece::Full(player) => match player {
-                        Player::Player1 => self.pallete.piece_player_1,
-                        Player::Player2 => self.pallete.piece_player_2,
-                    },
-                };
+        d.draw_rectangle(b_x, b_y, b_width, b_height, self.pallete.board);
 
-                d.draw_circle(x.round() as i32, y.round() as i32, radius, color);
+        for row in 0..BOARD_HEIGHT {
+            for column in 0..BOARD_WIDTH {
+                let tile = board[row * BOARD_WIDTH + column];
+                self.draw_tile(d, &tile, row, column);
             }
         }
     }
 
-    fn draw_player_turn(&self, d: &mut RaylibDrawHandle, player: Player) {
-        let text = match player {
-            Player::Player1 => "Player 1",
-            Player::Player2 => "Player 2",
+    fn draw_tile(&self, d: &mut RaylibDrawHandle, tile: &Tile, row: usize, column: usize) {
+        let (t_x, t_y) = self.view.tile_position(row, column);
+        let color = match tile {
+            Tile::Empty => self.pallete.background,
+            Tile::Full(player) => match player {
+                Player::Player1 => self.pallete.player_1,
+                Player::Player2 => self.pallete.player_2,
+            },
         };
-        d.draw_text(
-            format!("Turn: {}", text).as_str(),
-            self.view.board_padding.round() as i32,
-            self.view.text_padding().round() as i32,
-            self.view.text_size() as i32,
-            self.pallete.text,
-        );
+
+        d.draw_circle(t_x, t_y, self.view.tile_radius, color);
     }
 
-    fn draw_winner(&self, d: &mut RaylibDrawHandle, player: Player) {
-        let text = match player {
-            Player::Player1 => "Player 1",
-            Player::Player2 => "Player 2",
+    fn draw_text(&self, d: &mut RaylibDrawHandle, game: &Game) {
+        let text = match game.state() {
+            State::Turn(player) => format!("Turn: {}", player.as_str()),
+            State::Win(player) => format!("{} wins! Press r to restart", player.as_str()),
+            State::Tie => "Tie! Press r to restart".to_string(),
         };
+        let (t_x, t_y) = self.view.text_position();
+
         d.draw_text(
-            format!("{} wins! Press r to restart", text).as_str(),
-            self.view.board_padding.round() as i32,
-            self.view.text_padding().round() as i32,
-            self.view.text_size() as i32,
+            text.as_str(),
+            t_x,
+            t_y,
+            self.view.text_size,
             self.pallete.text,
         );
-    }
-
-    fn draw_tie(&self, d: &mut RaylibDrawHandle) {
-        d.draw_text(
-            "Tie! Press r to restart",
-            self.view.board_padding.round() as i32,
-            self.view.text_padding().round() as i32,
-            self.view.text_size() as i32,
-            self.pallete.text,
-        );
-    }
-
-    pub fn window_size(&self) -> (f32, f32) {
-        let width = self.view.tile_size * BOARD_WIDTH as f32 + self.view.board_padding * 2.0;
-        let height = self.view.tile_size * BOARD_HEIGHT as f32 + self.view.board_padding * 2.0;
-        (width, height)
-    }
-
-    pub fn board_view(&self) -> &BoardView {
-        &self.view
     }
 }
 
-impl BoardView {
-    fn piece_position(&self, row: usize, column: usize) -> (f32, f32) {
-        let x = self.board_padding + self.tile_size * column as f32 + self.tile_size / 2.0;
-        let y = self.board_padding
-            + self.tile_size * (BOARD_HEIGHT - 1 - row) as f32
-            + self.tile_size / 2.0;
-        (x, y)
+impl Default for View {
+    fn default() -> Self {
+        let tile_size = 100;
+        let tile_padding = 10;
+
+        Self {
+            tile_size,
+            _tile_padding: tile_padding,
+            tile_radius: tile_size as f32 / 2.0 - tile_padding as f32,
+            text_size: 40,
+            text_padding: 10,
+            board_padding: 15,
+        }
+    }
+}
+
+impl View {
+    pub fn window_size(&self) -> (i32, i32) {
+        let (b_width, b_height) = self.board_size();
+        (
+            b_width + self.board_padding * 2,
+            b_height + self.text_size + self.text_padding * 2 + self.board_padding,
+        )
     }
 
-    fn piece_radius(&self) -> f32 {
-        self.tile_size / 2.0 - self.tile_padding
+    fn board_size(&self) -> (i32, i32) {
+        (
+            self.tile_size * BOARD_WIDTH as i32,
+            self.tile_size * BOARD_HEIGHT as i32,
+        )
+    }
+
+    fn board_position(&self) -> (i32, i32) {
+        (self.board_padding, self.text_size + self.text_padding * 2)
+    }
+
+    fn tile_position(&self, row: usize, column: usize) -> (i32, i32) {
+        let (b_x, b_y) = self.board_position();
+
+        (
+            b_x + column as i32 * self.tile_size + self.tile_size / 2,
+            b_y + (BOARD_HEIGHT - 1 - row) as i32 * self.tile_size + self.tile_size / 2,
+        )
+    }
+
+    fn text_position(&self) -> (i32, i32) {
+        (self.board_padding, self.text_padding)
+    }
+
+    pub fn column_from_x(&self, x: i32) -> Option<usize> {
+        let x = x - self.board_padding;
+        match x {
+            x if x < 0 || x >= self.tile_size * BOARD_WIDTH as i32 => None,
+            _ => Some((x / self.tile_size) as usize),
+        }
+    }
+}
+
+impl Default for Pallete {
+    fn default() -> Self {
+        Self {
+            background: Color::from_hex("B4C292").unwrap(),
+            board: Color::from_hex("736F4E").unwrap(),
+            player_1: Color::from_hex("D17A22").unwrap(),
+            player_2: Color::from_hex("4C061D").unwrap(),
+            text: Color::from_hex("3B3923").unwrap(),
+        }
     }
 }
