@@ -1,23 +1,26 @@
+use game::{Game, Player};
+use graphics::Graphics;
+use input::{construct_action, Input};
+
 mod game;
 mod graphics;
 mod input;
+mod randomizer;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut user_input = input::UserInput::new();
-    let mut game = game::Game::new();
-    let graphics = graphics::Graphics::new();
+fn main() {
+    let mut game = Game::new(&Player::Player1);
+    let graphics = Graphics::default();
 
-    let (width, height) = graphics.window_size();
-    let (mut rl, thread) = raylib::init().size(width as i32, height as i32).build();
+    let (width, height) = graphics.view.window_size();
+    let (mut rl, thread) = raylib::init().size(width, height).build();
 
-    user_input.update(&mut rl, graphics.board_view());
-    graphics.draw(&mut rl, &thread, &game);
+    graphics.draw(&mut rl.begin_drawing(&thread), &game);
 
     while !rl.window_should_close() {
-        user_input.update(&mut rl, graphics.board_view());
-        game.update(&user_input);
-        graphics.draw(&mut rl, &thread, &game);
+        let input = Input::poll(&mut rl);
+        if let Some(action) = construct_action(&input, &game, &graphics.view) {
+            game.handle_action(&action);
+        }
+        graphics.draw(&mut rl.begin_drawing(&thread), &game);
     }
-
-    Ok(())
 }
